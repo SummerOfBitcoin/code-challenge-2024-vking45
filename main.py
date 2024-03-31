@@ -28,11 +28,76 @@ class Stack:
     def view(self):
         print(self.list)
 
+def reverse_hex_string_bytearray(hex_string):
+  byte_array = bytearray.fromhex(hex_string)
+  byte_array.reverse()
+  return byte_array.hex()
+
+def getTxIDFromRaw(data):
+    raw = ''
+    raw += data['version'].to_bytes(4, byteorder='little').hex()
+
+    raw += f"{len(data['vin']):02x}"
+
+    for inp in data['vin']:
+        raw += reverse_hex_string_bytearray(inp['txid'])
+        raw += inp['vout'].to_bytes(4, byteorder='little').hex()
+        scriptlen = f"{int(len(inp['scriptsig']) / 2):02x}"
+        raw += scriptlen
+        if scriptlen != "00":
+            raw += inp['scriptsig']
+        raw += inp['sequence'].to_bytes(4, byteorder='little').hex()
+
+    raw += f"{len(data['vout']):02x}"
+
+    for outp in data['vout']:
+        raw += outp['value'].to_bytes(8, byteorder='little').hex()
+        raw += f"{int(len(outp['scriptpubkey']) / 2):02x}"
+        raw += outp['scriptpubkey']
+    
+    raw += data['locktime'].to_bytes(4, byteorder='little').hex()
+
+    single_hash = hashlib.sha256(bytes.fromhex(raw))
+    double_hash = hashlib.sha256(bytes.fromhex(single_hash.hexdigest())).hexdigest()
+    txid = reverse_hex_string_bytearray(double_hash)
+    
+    return txid
+
 def serializeTransaction(data):
     raw = ''
     raw += data['version'].to_bytes(4, byteorder='little').hex()
-    return raw
 
+    for inp in data['vin']:
+        if "witness" in inp.keys():
+            raw += "0001"
+
+    raw += f"{len(data['vin']):02x}"
+
+    for inp in data['vin']:
+        raw += reverse_hex_string_bytearray(inp['txid'])
+        raw += inp['vout'].to_bytes(4, byteorder='little').hex()
+        scriptlen = f"{int(len(inp['scriptsig']) / 2):02x}"
+        raw += scriptlen
+        if scriptlen != "00":
+            raw += inp['scriptsig']
+        raw += inp['sequence'].to_bytes(4, byteorder='little').hex()
+
+    raw += f"{len(data['vout']):02x}"
+
+    for outp in data['vout']:
+        raw += outp['value'].to_bytes(8, byteorder='little').hex()
+        raw += f"{int(len(outp['scriptpubkey']) / 2):02x}"
+        raw += outp['scriptpubkey']
+
+    for inp in data['vin']:
+        raw += f"{len(inp['witness']):02x}"
+        for wit in inp['witness']:
+            raw += f"{int(len(wit) / 2):02x}"
+            raw += wit
+    
+    raw += data['locktime'].to_bytes(4, byteorder='little').hex()
+
+    return raw
 
 def mempool():
     inval_txs = 0
@@ -217,6 +282,10 @@ def process_opcode(stck, i, oplist):
 
 #mempool()
 #print(verify_tx("0dd03993f8318d968b7b6fdf843682e9fd89258c186187688511243345c2009f.json"))
+with open(f"mempool/0a4ce1145b6485c086f277aa185ba799234204f6caddb4228ee42b7cc7ad279a.json", 'r') as f:
+    data = json.load(f)
+    print(getTxIDFromRaw(data))
+
 # print(verify_tx("fef2b7b6c156c891672141dd89032ae8cddee0562ad2d376b9b423c26d870682.json"))
 
 # def check_tx_type(tx_filename):
