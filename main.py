@@ -33,35 +33,51 @@ def reverse_hex_string_bytearray(hex_string):
   byte_array.reverse()
   return byte_array.hex()
 
-def getTxIDFromRaw(data):
-    raw = ''
-    raw += data['version'].to_bytes(4, byteorder='little').hex()
-
-    raw += f"{len(data['vin']):02x}"
-
-    for inp in data['vin']:
-        raw += reverse_hex_string_bytearray(inp['txid'])
-        raw += inp['vout'].to_bytes(4, byteorder='little').hex()
-        scriptlen = f"{int(len(inp['scriptsig']) / 2):02x}"
-        raw += scriptlen
-        if scriptlen != "00":
-            raw += inp['scriptsig']
-        raw += inp['sequence'].to_bytes(4, byteorder='little').hex()
-
-    raw += f"{len(data['vout']):02x}"
-
-    for outp in data['vout']:
-        raw += outp['value'].to_bytes(8, byteorder='little').hex()
-        raw += f"{int(len(outp['scriptpubkey']) / 2):02x}"
-        raw += outp['scriptpubkey']
-    
-    raw += data['locktime'].to_bytes(4, byteorder='little').hex()
-
-    single_hash = hashlib.sha256(bytes.fromhex(raw))
+def double_hash(data):
+    single_hash = hashlib.sha256(bytes.fromhex(data))
     double_hash = hashlib.sha256(bytes.fromhex(single_hash.hexdigest())).hexdigest()
-    txid = reverse_hex_string_bytearray(double_hash)
-    
-    return txid
+    return double_hash
+
+def merkleroot(txids):
+    if len(txids) == 1:
+        return txids[0]
+
+    result = []
+    for i in range(0, len(txids), 2):
+        concat = txids[i] + (txids[i + 1] if i + 1 < len(txids) else txids[i])
+        result.append(double_hash(concat))
+
+    return merkleroot(result)
+
+def getTxID(filename):
+    with open(f"mempool/{filename}", 'r') as f:
+        data = json.load(f)
+        raw = ''
+        raw += data['version'].to_bytes(4, byteorder='little').hex()
+
+        raw += f"{len(data['vin']):02x}"
+
+        for inp in data['vin']:
+            raw += reverse_hex_string_bytearray(inp['txid'])
+            raw += inp['vout'].to_bytes(4, byteorder='little').hex()
+            scriptlen = f"{int(len(inp['scriptsig']) / 2):02x}"
+            raw += scriptlen
+            if scriptlen != "00":
+                raw += inp['scriptsig']
+            raw += inp['sequence'].to_bytes(4, byteorder='little').hex()
+
+        raw += f"{len(data['vout']):02x}"
+
+        for outp in data['vout']:
+            raw += outp['value'].to_bytes(8, byteorder='little').hex()
+            raw += f"{int(len(outp['scriptpubkey']) / 2):02x}"
+            raw += outp['scriptpubkey']
+        
+        raw += data['locktime'].to_bytes(4, byteorder='little').hex()
+
+        txid = reverse_hex_string_bytearray(double_hash(raw))
+        
+        return txid
 
 def serializeTransaction(data):
     raw = ''
@@ -101,15 +117,21 @@ def serializeTransaction(data):
 
 def mempool():
     inval_txs = 0
-    val_txs = 0
+    val_txs = []
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
-            val_txs += 1
+            val_txs.append(getTxID(filename))
         else:
             inval_txs += 1
-    print(f"Valid Transactions : {val_txs}")
+    print(f"Valid Transactions : {len(val_txs)}")
     print(f"Invalid Transactions : {inval_txs}")
+    reverse_txids = []
+    for i in val_txs:
+        reverse_txids.append(reverse_hex_string_bytearray(i))
+    merkle = merkleroot(reverse_txids)
+#    print(merkle)
+    return (merkle, val_txs)
 
 def verify_tx(tx_filename):
     with open(f"mempool/{tx_filename}", 'r') as f:
@@ -176,7 +198,7 @@ def verify_tx(tx_filename):
         if inp_amt < out_amt:
             return False
         
-        return serializeTransaction(data)
+        return True
 
 def process_scriptpubkey(oplist):
     key = ""
@@ -280,11 +302,42 @@ def process_opcode(stck, i, oplist):
 
     return [stck, i, valid]
 
-#mempool()
+def block_header(merkle):
+    header = ''
+    version = 4
+    previous_block = '0000b46885788719441442d10597f8d4bb16cb92fdaf918e92d062faf68b8018'
+    difficulty = '0000ffff00000000000000000000000000000000000000000000000000000000'
+    header += version.to_bytes(4, byteorder='little').hex()
+    header += reverse_hex_string_bytearray(previous_block)
+    header += reverse_hex_string_bytearray(merkle)
+    # timestamp for 1st May 2024 00:00:00 in Little Endian
+    header += '00863166'
+    # block difficulty in Little Endian
+    header += 'ffff001f'
+    for i in range(0, 2**32):
+        temp = header
+        temp2 = i.to_bytes(4, byteorder='little').hex()
+        temp += temp2
+        if int(reverse_hex_string_bytearray(double_hash(temp)), 16) < int(difficulty, 16):
+            return temp
+    
+
+(merkle, tx_list) = mempool()
+print(block_header(merkle))
 #print(verify_tx("0dd03993f8318d968b7b6fdf843682e9fd89258c186187688511243345c2009f.json"))
-with open(f"mempool/0a4ce1145b6485c086f277aa185ba799234204f6caddb4228ee42b7cc7ad279a.json", 'r') as f:
-    data = json.load(f)
-    print(getTxIDFromRaw(data))
+# with open(f"mempool/0a4ce1145b6485c086f277aa185ba799234204f6caddb4228ee42b7cc7ad279a.json", 'r') as f:
+#     data = json.load(f)
+# print(getTxID("0a4ce1145b6485c086f277aa185ba799234204f6caddb4228ee42b7cc7ad279a.json"))
+# txids = [
+#   "321c449ef1ee7f6d3602d043faaaa1a1b20b4cff23f22b6e6de366163a558756",
+#   "220d82a59a4c4f92eb2d77cc5b5c9ae0166a4e811c87a6677938404b72ddf03e",
+# ]
+
+# # Reverse byte order of TXIDs
+# #txids = [txid[::-1] for txid in txids]
+
+# result = merkleroot(txids)
+# print(result)
 
 # print(verify_tx("fef2b7b6c156c891672141dd89032ae8cddee0562ad2d376b9b423c26d870682.json"))
 
