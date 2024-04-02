@@ -2,6 +2,8 @@ import os
 import json
 import hashlib
 import ripemd.ripemd160
+import time
+import struct
 import binascii
 
 class Stack:
@@ -35,8 +37,14 @@ def reverse_hex_string_bytearray(hex_string):
   byte_array.reverse()
   return byte_array.hex()
 
+def get_timestamp():
+    current_timestamp = int(time.time())
+    hex_bytes = struct.pack("<I", current_timestamp)
+    hex_string = hex_bytes.hex()
+    return hex_string
+
 def _ripemd160(hex_bytes):
-    binary_data = binascii.unhexlify(hex_bytes)  # Convert hex bytes to binary
+    binary_data = binascii.unhexlify(hex_bytes)
     hash_object = ripemd.ripemd160.new(binary_data) 
     hex_digest = hash_object.digest()  
     return hex_digest.hex()
@@ -317,10 +325,10 @@ def block_header(merkle):
     header += version.to_bytes(4, byteorder='little').hex()
     header += reverse_hex_string_bytearray(previous_block)
     header += merkle
-    # timestamp for 1st May 2024 00:00:00 in Little Endian
-    header += '00863166'
+    # timestamp
+    header += get_timestamp()
     # block difficulty in Little Endian
-    header += 'ffff001f'
+    header += '0x1f00ffff'
     for i in range(0, 2**32):
         temp = header
         temp2 = i.to_bytes(4, byteorder='little').hex()
