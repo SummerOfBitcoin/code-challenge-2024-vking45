@@ -371,7 +371,10 @@ folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
-witness_root = merkleroot(w_txs)
+reverse_wtxids = []
+for i in w_txs:
+    reverse_wtxids.append(reverse_hex_string_bytearray(i))
+witness_root = merkleroot(reverse_wtxids)
 (merkle, tx_list) = mempool(witness_root)
 header = block_header(merkle)
 coinbase = coinbase_tx(witness_root)
@@ -385,6 +388,7 @@ with open('output.txt', 'w') as file:
     for tx in tx_list:
         file.write(str(tx) + '\n')
 
+#print(merkleroot(['0000000000000000000000000000000000000000000000000000000000000000', '8700d546b39e1a0faf34c98067356206db50fdef24e2f70b431006c59d548ea2', 'c54bab5960d3a416c40464fa67af1ddeb63a2ce60a0b3c36f11896ef26cbcb87', 'e51de361009ef955f182922647622f9662d1a77ca87c4eb2fd7996b2fe0d7785']))
 # print(coinbase_tx())
 #print(process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_32', '8a2a554f422bd182ef4e7a91e206e3a88a4f1c15eb6ec1a77e890675a924bdc5']))
 #print(verify_tx("0dd03993f8318d968b7b6fdf843682e9fd89258c186187688511243345c2009f.json"))
