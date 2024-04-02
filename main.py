@@ -134,17 +134,14 @@ def wTxID(filename):
 
         return reverse_hex_string_bytearray(double_hash(raw))
 
-def mempool():
+def mempool(witness_commit):
     inval_txs = 0
     val_txs = []
-    w_txs = [] 
-    val_txs.append(reverse_hex_string_bytearray(double_hash(coinbase_tx())))
-    w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
+    val_txs.append(reverse_hex_string_bytearray(double_hash(coinbase_tx(witness_commit))))
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
             val_txs.append(getTxID(filename))
-            w_txs.append(wTxID(filename))
         else:
             inval_txs += 1
     print(f"Valid Transactions : {len(val_txs)}")
@@ -153,9 +150,7 @@ def mempool():
     for i in val_txs:
         reverse_txids.append(reverse_hex_string_bytearray(i))
     merkle = merkleroot(reverse_txids)
-    witness_root = merkleroot(w_txs)
-#    print(merkle)
-    return [merkle, val_txs, witness_root]
+    return (merkle, val_txs)
 
 def verify_tx(tx_filename):
     with open(f"mempool/{tx_filename}", 'r') as f:
@@ -342,7 +337,7 @@ def block_header(merkle):
         if int(reverse_hex_string_bytearray(double_hash(temp)), 16) < int(difficulty, 16):
             return temp
     
-def coinbase_tx():
+def coinbase_tx(witness_commit):
     raw = ''
     # includes version in Little Endian, Input Count = 01 & Input 0 as 0 address and vout as highest value
     raw += '010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff'
@@ -359,7 +354,8 @@ def coinbase_tx():
     # zero amount
     raw += '0000000000000000'
     # to do - add witness reserved value for correct commitment
-    witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', 'aa21a9ed67202a407a9c7b9f15db9f83513ce5632b8873d363d6546eb0a371c971e216f6'])
+    commit = double_hash(witness_commit + '0000000000000000000000000000000000000000000000000000000000000000')
+    witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', 'aa21a9ed' + commit])
     raw += f"{int(len(witscript) / 2):02x}"
     raw += witscript
     # witness stack
@@ -369,12 +365,19 @@ def coinbase_tx():
     
     return raw
 
-[merkle, tx_list, wtx_list] = mempool()
+w_txs = []
+w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
+folder = "mempool"
+for filename in os.listdir(folder):
+    if verify_tx(filename):
+        w_txs.append(wTxID(filename))
+witness_root = merkleroot(w_txs)
+(merkle, tx_list) = mempool(witness_root)
 header = block_header(merkle)
-coinbase = coinbase_tx()
+coinbase = coinbase_tx(witness_root)
 
 # print(reverse_hex_string_bytearray(double_hash(coinbase)))
-print(wtx_list)
+# print(wtx_list)
 
 with open('output.txt', 'w') as file:
     file.write(header + '\n')
