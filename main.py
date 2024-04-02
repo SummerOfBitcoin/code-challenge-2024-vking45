@@ -371,12 +371,16 @@ folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
-witness_root = merkleroot(w_txs)
-# print(len(w_txs))
+rev = []
+for i in w_txs:
+    rev.append(reverse_hex_string_bytearray(i))
+# print(rev)
+witness_root = merkleroot(rev)
+# print("witness - " + witness_root)
 raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
-print(coinbase_txid)
+# print(coinbase_txid)
 (merkle, tx_list) = mempool(coinbase_txid)
 header = block_header(merkle)
 
@@ -414,7 +418,7 @@ with open('output.txt', 'w') as file:
 # result = merkleroot(txids)
 # print(result)
 
-# print(verify_tx("fef2b7b6c156c891672141dd89032ae8cddee0562ad2d376b9b423c26d870682.json"))
+print(wTxID("ff32ecbba0c3c5ff47442ed3c9ba515464974026f5cd1f4342d47bb78e6f96dc.json"))
 
 # def check_tx_type(tx_filename):
 #     with open(f"mempool/{tx_filename}", 'r') as f:
