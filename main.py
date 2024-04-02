@@ -357,7 +357,7 @@ def coinbase_tx(witness_commit):
     commit = double_hash(witness_commit + '0000000000000000000000000000000000000000000000000000000000000000')
     witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', 'aa21a9ed' + commit])
     raw += f"{int(len(witscript) / 2):02x}"
-    raw += witscript
+    raw += reverse_hex_string_bytearray(witscript)
     # witness stack
     raw += '01200000000000000000000000000000000000000000000000000000000000000000'
     # setting locktime as 0
