@@ -328,7 +328,7 @@ def block_header(merkle):
     # timestamp
     header += get_timestamp()
     # block difficulty in Little Endian
-    header += '1f00ffff'
+    header += 'ffff001f'
     for i in range(0, 2**32):
         temp = header
         temp2 = i.to_bytes(4, byteorder='little').hex()
