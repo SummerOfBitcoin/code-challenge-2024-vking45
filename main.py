@@ -95,51 +95,56 @@ def getTxID(filename):
         
         return txid
 
-def serializeTransaction(data):
-    raw = ''
-    raw += data['version'].to_bytes(4, byteorder='little').hex()
+def wTxID(filename):
+    with open(f"mempool/{filename}", 'r') as f:
+        data = json.load(f)
+        raw = ''
+        raw += data['version'].to_bytes(4, byteorder='little').hex()
 
-    for inp in data['vin']:
-        if "witness" in inp.keys():
-            raw += "0001"
+        for inp in data['vin']:
+            if "witness" in inp.keys():
+                raw += "0001"
 
-    raw += f"{len(data['vin']):02x}"
+        raw += f"{len(data['vin']):02x}"
 
-    for inp in data['vin']:
-        raw += reverse_hex_string_bytearray(inp['txid'])
-        raw += inp['vout'].to_bytes(4, byteorder='little').hex()
-        scriptlen = f"{int(len(inp['scriptsig']) / 2):02x}"
-        raw += scriptlen
-        if scriptlen != "00":
-            raw += inp['scriptsig']
-        raw += inp['sequence'].to_bytes(4, byteorder='little').hex()
+        for inp in data['vin']:
+            raw += reverse_hex_string_bytearray(inp['txid'])
+            raw += inp['vout'].to_bytes(4, byteorder='little').hex()
+            scriptlen = f"{int(len(inp['scriptsig']) / 2):02x}"
+            raw += scriptlen
+            if scriptlen != "00":
+                raw += inp['scriptsig']
+            raw += inp['sequence'].to_bytes(4, byteorder='little').hex()
 
-    raw += f"{len(data['vout']):02x}"
+        raw += f"{len(data['vout']):02x}"
 
-    for outp in data['vout']:
-        raw += outp['value'].to_bytes(8, byteorder='little').hex()
-        raw += f"{int(len(outp['scriptpubkey']) / 2):02x}"
-        raw += outp['scriptpubkey']
+        for outp in data['vout']:
+            raw += outp['value'].to_bytes(8, byteorder='little').hex()
+            raw += f"{int(len(outp['scriptpubkey']) / 2):02x}"
+            raw += outp['scriptpubkey']
 
-    for inp in data['vin']:
-        raw += f"{len(inp['witness']):02x}"
-        for wit in inp['witness']:
-            raw += f"{int(len(wit) / 2):02x}"
-            raw += wit
-    
-    raw += data['locktime'].to_bytes(4, byteorder='little').hex()
+        for inp in data['vin']:
+            if "witness" in inp.keys():
+                raw += f"{len(inp['witness']):02x}"
+                for wit in inp['witness']:
+                    raw += f"{int(len(wit) / 2):02x}"
+                    raw += wit
+        
+        raw += data['locktime'].to_bytes(4, byteorder='little').hex()
 
-    return raw
+        return reverse_hex_string_bytearray(double_hash(raw))
 
 def mempool():
     inval_txs = 0
     val_txs = []
+    w_txs = [] 
     val_txs.append(reverse_hex_string_bytearray(double_hash(coinbase_tx())))
-    print(val_txs)
+    w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
             val_txs.append(getTxID(filename))
+            w_txs.append(wTxID(filename))
         else:
             inval_txs += 1
     print(f"Valid Transactions : {len(val_txs)}")
@@ -148,8 +153,9 @@ def mempool():
     for i in val_txs:
         reverse_txids.append(reverse_hex_string_bytearray(i))
     merkle = merkleroot(reverse_txids)
+    witness_root = merkleroot(w_txs)
 #    print(merkle)
-    return (merkle, val_txs)
+    return [merkle, val_txs, witness_root]
 
 def verify_tx(tx_filename):
     with open(f"mempool/{tx_filename}", 'r') as f:
@@ -339,32 +345,43 @@ def block_header(merkle):
 def coinbase_tx():
     raw = ''
     # includes version in Little Endian, Input Count = 01 & Input 0 as 0 address and vout as highest value
-    raw += '01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff'
+    raw += '010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff'
     # pushing block height and <3 as arbitrary data in scriptpubkey
     scriptpub = process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_2', '3c33'])
     raw += f"{int(len(scriptpub) / 2):02x}"
     raw += scriptpub
     # setting sequence as 0
     raw += '00000000'
-    # output count as 1 and amount as 6.5 BTC
-    raw += '018036be2600000000'
+    # output count as 2 and amount as 6.5 BTC
+    raw += '028036be2600000000'
     # a P2PKH ouput with size as 19 hex bytes and script with unlocking public key as 2c30a6aaac6d96687291475d7d52f4b469f665a6
     raw += '1976a9142c30a6aaac6d96687291475d7d52f4b469f665a688ac'
+    # zero amount
+    raw += '0000000000000000'
+    witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', 'aa21a9ed8fb36851d47af2f9e06a8329ee4ee3d9a3fb492a5b788d11453a6554fa504d19'])
+    raw += f"{int(len(witscript) / 2):02x}"
+    raw += witscript
+    # witness stack
+    raw += '01200000000000000000000000000000000000000000000000000000000000000000'
     # setting locktime as 0
     raw += '00000000'
     
     return raw
 
-(merkle, tx_list) = mempool()
+[merkle, tx_list, wtx_list] = mempool()
 header = block_header(merkle)
 coinbase = coinbase_tx()
-print(reverse_hex_string_bytearray(double_hash(coinbase)))
+
+# print(reverse_hex_string_bytearray(double_hash(coinbase)))
+print('aa21a9ed'+wtx_list)
 
 with open('output.txt', 'w') as file:
     file.write(header + '\n')
     file.write(coinbase + '\n')
     for tx in tx_list:
         file.write(str(tx) + '\n')
+temp = []
+
 # print(coinbase_tx())
 #print(process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_32', '8a2a554f422bd182ef4e7a91e206e3a88a4f1c15eb6ec1a77e890675a924bdc5']))
 #print(verify_tx("0dd03993f8318d968b7b6fdf843682e9fd89258c186187688511243345c2009f.json"))
