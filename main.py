@@ -374,7 +374,7 @@ for filename in os.listdir(folder):
 reverse_wtxids = []
 for i in w_txs:
     reverse_wtxids.append(reverse_hex_string_bytearray(i))
-witness_root = merkleroot(reverse_wtxids)
+witness_root = merkleroot(w_txs)
 raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
