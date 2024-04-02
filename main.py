@@ -139,7 +139,7 @@ def mempool():
     reverse_txids = []
     for i in val_txs:
         reverse_txids.append(reverse_hex_string_bytearray(i))
-    merkle = merkleroot(val_txs)
+    merkle = merkleroot(reverse_txids)
 #    print(merkle)
     return (merkle, val_txs)
 
