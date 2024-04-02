@@ -371,15 +371,13 @@ folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
-reverse_wtxids = []
-for i in w_txs:
-    reverse_wtxids.append(reverse_hex_string_bytearray(i))
 witness_root = merkleroot(w_txs)
+# print(len(w_txs))
 raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
 print(coinbase_txid)
-(merkle, tx_list) = mempool(raw_coinbase)
+(merkle, tx_list) = mempool(coinbase_txid)
 header = block_header(merkle)
 
 
