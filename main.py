@@ -358,7 +358,8 @@ def coinbase_tx():
     raw += '1976a9142c30a6aaac6d96687291475d7d52f4b469f665a688ac'
     # zero amount
     raw += '0000000000000000'
-    witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', 'aa21a9ed8fb36851d47af2f9e06a8329ee4ee3d9a3fb492a5b788d11453a6554fa504d19'])
+    # to do - add witness reserved value for correct commitment
+    witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', 'aa21a9ed67202a407a9c7b9f15db9f83513ce5632b8873d363d6546eb0a371c971e216f6'])
     raw += f"{int(len(witscript) / 2):02x}"
     raw += witscript
     # witness stack
@@ -373,14 +374,13 @@ header = block_header(merkle)
 coinbase = coinbase_tx()
 
 # print(reverse_hex_string_bytearray(double_hash(coinbase)))
-print('aa21a9ed'+wtx_list)
+print(wtx_list)
 
 with open('output.txt', 'w') as file:
     file.write(header + '\n')
     file.write(coinbase + '\n')
     for tx in tx_list:
         file.write(str(tx) + '\n')
-temp = []
 
 # print(coinbase_tx())
 #print(process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_32', '8a2a554f422bd182ef4e7a91e206e3a88a4f1c15eb6ec1a77e890675a924bdc5']))
