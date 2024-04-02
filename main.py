@@ -139,7 +139,7 @@ def mempool():
     reverse_txids = []
     for i in val_txs:
         reverse_txids.append(reverse_hex_string_bytearray(i))
-    merkle = merkleroot(reverse_txids)
+    merkle = merkleroot(val_txs)
 #    print(merkle)
     return (merkle, val_txs)
 
@@ -316,7 +316,7 @@ def block_header(merkle):
     difficulty = '0000ffff00000000000000000000000000000000000000000000000000000000'
     header += version.to_bytes(4, byteorder='little').hex()
     header += reverse_hex_string_bytearray(previous_block)
-    header += reverse_hex_string_bytearray(merkle)
+    header += merkle
     # timestamp for 1st May 2024 00:00:00 in Little Endian
     header += '00863166'
     # block difficulty in Little Endian
