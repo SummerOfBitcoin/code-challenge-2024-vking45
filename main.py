@@ -118,6 +118,8 @@ def serializeTransaction(data):
 def mempool():
     inval_txs = 0
     val_txs = []
+    val_txs.append(reverse_hex_string_bytearray(double_hash(coinbase_tx())))
+    print(val_txs)
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
@@ -321,9 +323,37 @@ def block_header(merkle):
         if int(reverse_hex_string_bytearray(double_hash(temp)), 16) < int(difficulty, 16):
             return temp
     
+def coinbase_tx():
+    raw = ''
+    # includes version in Little Endian, Input Count = 01 & Input 0 as 0 address and vout as highest value
+    raw += '01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff'
+    # pushing block height and <3 as arbitrary data in scriptpubkey
+    scriptpub = process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_2', '3c33'])
+    raw += f"{int(len(scriptpub) / 2):02x}"
+    raw += scriptpub
+    # setting sequence as 0
+    raw += '00000000'
+    # output count as 1 and amount as 6.5 BTC
+    raw += '018036be2600000000'
+    # a P2PKH ouput with size as 19 hex bytes and script with unlocking public key as 2c30a6aaac6d96687291475d7d52f4b469f665a6
+    raw += '1976a9142c30a6aaac6d96687291475d7d52f4b469f665a688ac'
+    # setting locktime as 0
+    raw += '00000000'
+    
+    return raw
 
 (merkle, tx_list) = mempool()
-print(block_header(merkle))
+header = block_header(merkle)
+coinbase = coinbase_tx()
+print(reverse_hex_string_bytearray(double_hash(coinbase)))
+
+with open('output.txt', 'w') as file:
+    file.write(header + '\n')
+    file.write(coinbase + '\n')
+    for tx in tx_list:
+        file.write(str(tx) + '\n')
+# print(coinbase_tx())
+#print(process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_32', '8a2a554f422bd182ef4e7a91e206e3a88a4f1c15eb6ec1a77e890675a924bdc5']))
 #print(verify_tx("0dd03993f8318d968b7b6fdf843682e9fd89258c186187688511243345c2009f.json"))
 # with open(f"mempool/0a4ce1145b6485c086f277aa185ba799234204f6caddb4228ee42b7cc7ad279a.json", 'r') as f:
 #     data = json.load(f)
