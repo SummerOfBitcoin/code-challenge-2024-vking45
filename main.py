@@ -134,10 +134,10 @@ def wTxID(filename):
 
         return reverse_hex_string_bytearray(double_hash(raw))
 
-def mempool(witness_commit):
+def mempool(coinbase_txid):
     inval_txs = 0
     val_txs = []
-    val_txs.append(reverse_hex_string_bytearray(double_hash(coinbase_tx(witness_commit))))
+    val_txs.append(coinbase_txid)
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
@@ -342,11 +342,11 @@ def coinbase_tx(witness_commit):
     # includes version in Little Endian, Input Count = 01 & Input 0 as 0 address and vout as highest value
     raw += '010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff'
     # pushing block height and <3 as arbitrary data in scriptpubkey
-    scriptpub = process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_2', '3c33'])
+    scriptpub = process_scriptpubkey(['OP_PUSHBYTES_3', 'ffffff', 'OP_PUSHBYTES_2', '3c33'])
     raw += f"{int(len(scriptpub) / 2):02x}"
     raw += scriptpub
     # setting sequence as 0
-    raw += '00000000'
+    raw += 'ffffffff'
     # output count as 2 and amount as 6.5 BTC
     raw += '028036be2600000000'
     # a P2PKH ouput with size as 19 hex bytes and script with unlocking public key as 2c30a6aaac6d96687291475d7d52f4b469f665a6
@@ -375,20 +375,30 @@ reverse_wtxids = []
 for i in w_txs:
     reverse_wtxids.append(reverse_hex_string_bytearray(i))
 witness_root = merkleroot(reverse_wtxids)
-(merkle, tx_list) = mempool(witness_root)
+raw_coinbase = coinbase_tx(witness_root)
+# print(raw_coinbase)
+coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
+print(coinbase_txid)
+(merkle, tx_list) = mempool(raw_coinbase)
 header = block_header(merkle)
-coinbase = coinbase_tx(witness_root)
+
 
 # print(reverse_hex_string_bytearray(double_hash(coinbase)))
 # print(wtx_list)
 
 with open('output.txt', 'w') as file:
     file.write(header + '\n')
-    file.write(coinbase + '\n')
+    file.write(raw_coinbase + '\n')
     for tx in tx_list:
         file.write(str(tx) + '\n')
 
-#print(merkleroot(['0000000000000000000000000000000000000000000000000000000000000000', '8700d546b39e1a0faf34c98067356206db50fdef24e2f70b431006c59d548ea2', 'c54bab5960d3a416c40464fa67af1ddeb63a2ce60a0b3c36f11896ef26cbcb87', 'e51de361009ef955f182922647622f9662d1a77ca87c4eb2fd7996b2fe0d7785']))
+# reverse_wtxids = []
+# w_txs = ['0000000000000000000000000000000000000000000000000000000000000000', '8700d546b39e1a0faf34c98067356206db50fdef24e2f70b431006c59d548ea2', 'c54bab5960d3a416c40464fa67af1ddeb63a2ce60a0b3c36f11896ef26cbcb87', 'e51de361009ef955f182922647622f9662d1a77ca87c4eb2fd7996b2fe0d7785']
+# for i in w_txs:
+#     reverse_wtxids.append(reverse_hex_string_bytearray(i))
+# witness_root = merkleroot(reverse_wtxids)
+# print(witness_root)
+# print(double_hash(witness_root + '0000000000000000000000000000000000000000000000000000000000000000'))
 # print(coinbase_tx())
 #print(process_scriptpubkey(['OP_PUSHBYTES_3', '951a06', 'OP_PUSHBYTES_32', '8a2a554f422bd182ef4e7a91e206e3a88a4f1c15eb6ec1a77e890675a924bdc5']))
 #print(verify_tx("0dd03993f8318d968b7b6fdf843682e9fd89258c186187688511243345c2009f.json"))
