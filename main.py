@@ -337,10 +337,10 @@ def block_header(merkle):
         if int(reverse_hex_string_bytearray(double_hash(temp)), 16) < int(difficulty, 16):
             return temp
     
-def coinbase_tx(witness_commit):
+def coinbase_tx(witness_root):
     raw = ''
     # includes version in Little Endian, Input Count = 01 & Input 0 as 0 address and vout as highest value
-    raw += '010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff'
+    raw += '020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff'
     # pushing block height and <3 as arbitrary data in scriptpubkey
     scriptpub = process_scriptpubkey(['OP_PUSHBYTES_3', 'ffffff', 'OP_PUSHBYTES_2', '3c33'])
     raw += f"{int(len(scriptpub) / 2):02x}"
@@ -354,10 +354,10 @@ def coinbase_tx(witness_commit):
     # zero amount
     raw += '0000000000000000'
     # to do - add witness reserved value for correct commitment
-    commit = double_hash(witness_commit + '0000000000000000000000000000000000000000000000000000000000000000')
-    witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', 'aa21a9ed' + commit])
+    commit = double_hash(witness_root + '0000000000000000000000000000000000000000000000000000000000000000')
+    witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', f"aa21a9ed{commit}"])
     raw += f"{int(len(witscript) / 2):02x}"
-    raw += reverse_hex_string_bytearray(witscript)
+    raw += witscript
     # witness stack
     raw += '01200000000000000000000000000000000000000000000000000000000000000000'
     # setting locktime as 0
@@ -371,12 +371,8 @@ folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
-rev = []
-for i in w_txs:
-    rev.append(reverse_hex_string_bytearray(i))
-# print(rev)
-witness_root = merkleroot(rev)
-# print("witness - " + witness_root)
+witness_root = merkleroot(w_txs)
+print("witness - " + witness_root)
 raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
@@ -418,7 +414,7 @@ with open('output.txt', 'w') as file:
 # result = merkleroot(txids)
 # print(result)
 
-print(wTxID("ff32ecbba0c3c5ff47442ed3c9ba515464974026f5cd1f4342d47bb78e6f96dc.json"))
+print(getTxID("ff32ecbba0c3c5ff47442ed3c9ba515464974026f5cd1f4342d47bb78e6f96dc.json"))
 
 # def check_tx_type(tx_filename):
 #     with open(f"mempool/{tx_filename}", 'r') as f:
