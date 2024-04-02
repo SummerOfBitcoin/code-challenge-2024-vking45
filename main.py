@@ -1,6 +1,8 @@
 import os
 import json
 import hashlib
+import ripemd.ripemd160
+import binascii
 
 class Stack:
     def __init__(self):
@@ -32,6 +34,12 @@ def reverse_hex_string_bytearray(hex_string):
   byte_array = bytearray.fromhex(hex_string)
   byte_array.reverse()
   return byte_array.hex()
+
+def _ripemd160(hex_bytes):
+    binary_data = binascii.unhexlify(hex_bytes)  # Convert hex bytes to binary
+    hash_object = ripemd.ripemd160.new(binary_data) 
+    hex_digest = hash_object.digest()  
+    return hex_digest.hex()
 
 def double_hash(data):
     single_hash = hashlib.sha256(bytes.fromhex(data))
@@ -283,10 +291,7 @@ def process_opcode(stck, i, oplist):
         val = stck.pop()
         hash_object = hashlib.sha256(bytes.fromhex(val))
         hex_digest = hash_object.hexdigest()
-        hash_object = hashlib.new('ripemd160')
-        hash_object.update(bytes.fromhex(hex_digest))
-        hex_digest = hash_object.hexdigest()
-        stck.push(hex_digest)
+        stck.push(_ripemd160(hex_digest))
         i += 1
     elif oplist[i] == "OP_EQUALVERIFY" or oplist[i] == "OP_EQUAL":
         val1 = stck.pop()
