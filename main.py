@@ -104,6 +104,7 @@ def wTxID(filename):
         for inp in data['vin']:
             if "witness" in inp.keys():
                 raw += "0001"
+                break
 
         raw += f"{len(data['vin']):02x}"
 
@@ -139,7 +140,7 @@ def mempool(coinbase_txid):
     val_txs = []
     val_txs.append(coinbase_txid)
     folder = "mempool"
-    for filename in os.listdir(folder)[0:150]:
+    for filename in os.listdir(folder)[0:200]:
         if verify_tx(filename):
             val_txs.append(getTxID(filename))
         else:
@@ -369,7 +370,7 @@ def coinbase_tx(witness_root):
 w_txs = []
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
-for filename in os.listdir(folder)[0:150]:
+for filename in os.listdir(folder)[0:200]:
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
 rev = []
@@ -422,8 +423,8 @@ with open('output.txt', 'w') as file:
 
 # print(double_hash("dbee9a868a8caa2a1ddf683af1642a88dfb7ac7ce3ecb5d043586811a41fdbf2" + "0000000000000000000000000000000000000000000000000000000000000000"))
 
-# print(getTxID("fa3b844e058acbea9d6dd0ddeb0acdd274bd5d9b7cb4265b59e9a3046198de78.json"))
-# print(wTxID("fa3b844e058acbea9d6dd0ddeb0acdd274bd5d9b7cb4265b59e9a3046198de78.json"))
+# print(getTxID("04f89b4a86c1041a6d72b7a328089a2b915b7f7a207041564b708a75bd1161b1.json"))
+# print(wTxID("04f89b4a86c1041a6d72b7a328089a2b915b7f7a207041564b708a75bd1161b1.json"))
 
 # def check_tx_type(tx_filename):
 #     with open(f"mempool/{tx_filename}", 'r') as f:
