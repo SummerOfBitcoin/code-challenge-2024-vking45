@@ -139,7 +139,7 @@ def mempool(coinbase_txid):
     val_txs = []
     val_txs.append(coinbase_txid)
     folder = "mempool"
-    for filename in os.listdir(folder):
+    for filename in os.listdir(folder)[0:30]:
         if verify_tx(filename):
             val_txs.append(getTxID(filename))
         else:
@@ -196,9 +196,6 @@ def verify_tx(tx_filename):
                 if not process_scriptpubkey(_redeemscript) == dup_stck.pop():
                     print("False redeemScript - " + tx_filename)    
                     return False
-                
-                # remove this
-                return False
                 
             else:
                 return False
@@ -358,6 +355,7 @@ def coinbase_tx(witness_root):
     raw += '0000000000000000'
     # to do - add witness reserved value for correct commitment
     commit = double_hash(witness_root + '0000000000000000000000000000000000000000000000000000000000000000')
+    print(commit)
     witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', f"aa21a9ed{commit}"])
     raw += f"{int(len(witscript) / 2):02x}"
     raw += witscript
@@ -369,13 +367,17 @@ def coinbase_tx(witness_root):
     return raw
 
 w_txs = []
-#w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
+w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
-for filename in os.listdir(folder):
+for filename in os.listdir(folder)[0:30]:
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
-witness_root = merkleroot(w_txs)
-print("witness - " + witness_root)
+rev = []
+for i in w_txs:
+    rev.append(reverse_hex_string_bytearray(i))
+# print(w_txs)
+witness_root = merkleroot(rev)
+# print("witness - " + witness_root)
 raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
