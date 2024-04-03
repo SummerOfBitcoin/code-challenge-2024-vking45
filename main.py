@@ -57,12 +57,12 @@ def double_hash(data):
 def merkleroot(txids):
     if len(txids) == 1:
         return txids[0]
-
     result = []
     for i in range(0, len(txids), 2):
-        concat = txids[i] + (txids[i + 1] if i + 1 < len(txids) else txids[i])
+        one = txids[i]
+        two = txids[i + 1] if i + 1 < len(txids) else one
+        concat = one + two
         result.append(double_hash(concat))
-
     return merkleroot(result)
 
 def getTxID(filename):
@@ -139,7 +139,7 @@ def mempool(coinbase_txid):
     val_txs = []
     val_txs.append(coinbase_txid)
     folder = "mempool"
-    for filename in os.listdir(folder)[0:100]:
+    for filename in os.listdir(folder)[0:150]:
         if verify_tx(filename):
             val_txs.append(getTxID(filename))
         else:
@@ -369,7 +369,7 @@ def coinbase_tx(witness_root):
 w_txs = []
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
-for filename in os.listdir(folder)[0:100]:
+for filename in os.listdir(folder)[0:150]:
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
 rev = []
@@ -377,7 +377,8 @@ for i in w_txs:
     rev.append(reverse_hex_string_bytearray(i))
 # print(w_txs)
 witness_root = merkleroot(rev)
-# print("witness - " + witness_root)
+print(w_txs)
+print("witness - " + witness_root)
 raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
