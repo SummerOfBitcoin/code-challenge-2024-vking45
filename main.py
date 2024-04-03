@@ -197,6 +197,9 @@ def verify_tx(tx_filename):
                     print("False redeemScript - " + tx_filename)    
                     return False
                 
+                # remove this
+                return False
+                
             else:
                 return False
             
@@ -366,7 +369,7 @@ def coinbase_tx(witness_root):
     return raw
 
 w_txs = []
-w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
+#w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
@@ -414,7 +417,10 @@ with open('output.txt', 'w') as file:
 # result = merkleroot(txids)
 # print(result)
 
-print(getTxID("ff32ecbba0c3c5ff47442ed3c9ba515464974026f5cd1f4342d47bb78e6f96dc.json"))
+# print(double_hash("dbee9a868a8caa2a1ddf683af1642a88dfb7ac7ce3ecb5d043586811a41fdbf2" + "0000000000000000000000000000000000000000000000000000000000000000"))
+
+# print(getTxID("fa3b844e058acbea9d6dd0ddeb0acdd274bd5d9b7cb4265b59e9a3046198de78.json"))
+# print(wTxID("fa3b844e058acbea9d6dd0ddeb0acdd274bd5d9b7cb4265b59e9a3046198de78.json"))
 
 # def check_tx_type(tx_filename):
 #     with open(f"mempool/{tx_filename}", 'r') as f:
