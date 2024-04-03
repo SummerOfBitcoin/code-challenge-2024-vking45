@@ -140,7 +140,7 @@ def mempool(coinbase_txid):
     val_txs = []
     val_txs.append(coinbase_txid)
     folder = "mempool"
-    for filename in os.listdir(folder)[0:200]:
+    for filename in os.listdir(folder):
         if verify_tx(filename):
             val_txs.append(getTxID(filename))
         else:
@@ -370,7 +370,7 @@ def coinbase_tx(witness_root):
 w_txs = []
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
-for filename in os.listdir(folder)[0:200]:
+for filename in os.listdir(folder):
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
 rev = []
