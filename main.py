@@ -142,10 +142,7 @@ def mempool(coinbase_txid):
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
-            try:
-                val_txs.append(getTxID(filename))
-            except:
-                pass
+            val_txs.append(getTxID(filename))
         else:
             inval_txs += 1
     print(f"Valid Transactions : {len(val_txs)}")
@@ -164,6 +161,9 @@ def verify_tx(tx_filename):
 
         inp_amt = 0
         out_amt = 0
+        
+        if len(data["vin"]) > 30:
+            return False
 
         for inp in data["vin"]:
 
@@ -366,7 +366,7 @@ def coinbase_tx(witness_root):
     raw += '0000000000000000'
     # to do - add witness reserved value for correct commitment
     commit = double_hash(witness_root + '0000000000000000000000000000000000000000000000000000000000000000')
-    print(commit)
+    # print(commit)
     witscript = process_scriptpubkey(['OP_RETURN', 'OP_PUSHBYTES_36', f"aa21a9ed{commit}"])
     raw += f"{int(len(witscript) / 2):02x}"
     raw += witscript
@@ -384,10 +384,7 @@ w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
-        try:
-            w_txs.append(wTxID(filename))
-        except:
-            print(filename)
+        w_txs.append(wTxID(filename))
 rev = []
 for i in w_txs:
     rev.append(reverse_hex_string_bytearray(i))
@@ -430,7 +427,7 @@ with open('output.txt', 'w') as file:
 #   "220d82a59a4c4f92eb2d77cc5b5c9ae0166a4e811c87a6677938404b72ddf03e",
 # ]
 
-print(verify_tx("04f89b4a86c1041a6d72b7a328089a2b915b7f7a207041564b708a75bd1161b1.json"))
+# print(verify_tx("04f89b4a86c1041a6d72b7a328089a2b915b7f7a207041564b708a75bd1161b1.json"))
 
 # # Reverse byte order of TXIDs
 # #txids = [txid[::-1] for txid in txids]
