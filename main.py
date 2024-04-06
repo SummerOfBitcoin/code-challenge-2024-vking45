@@ -213,6 +213,9 @@ def verify_tx(tx_filename):
                 if not valid:
                     return False
 
+                # remove this
+                return False
+                
             else:
                 return False
             
