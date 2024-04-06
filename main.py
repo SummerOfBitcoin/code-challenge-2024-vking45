@@ -199,23 +199,22 @@ def verify_tx(tx_filename):
                     return False
 
             elif inp["prevout"]["scriptpubkey_type"] == "v0_p2wpkh":
-                # stck = Stack()
+                stck = Stack()
 
-                # if inp["scriptsig"] != "" or inp["scriptsig_asm"] != "" or len(inp["witness"]) != 2 or inp["prevout"]["scriptpubkey_asm"][0:20] != "OP_0 OP_PUSHBYTES_20" or process_scriptpubkey(inp["prevout"]["scriptpubkey_asm"].split()) != inp["prevout"]["scriptpubkey"]:
-                #     return False
+                if inp["scriptsig"] != "" or inp["scriptsig_asm"] != "" or len(inp["witness"]) != 2 or inp["prevout"]["scriptpubkey_asm"][0:20] != "OP_0 OP_PUSHBYTES_20" or process_scriptpubkey(inp["prevout"]["scriptpubkey_asm"].split()) != inp["prevout"]["scriptpubkey"]:
+                    return False
 
-                # for i in inp["witness"]:
-                #     stck.push(i)
+                for i in inp["witness"]:
+                    stck.push(i)
 
-                # std_script = f'OP_DUP OP_HASH160 OP_PUSHBYTES_20 {inp["prevout"]["scriptpubkey_asm"].split()[2]} OP_EQUALVERIFY OP_CHECKSIG'
-                # (stck, valid) = loop_opcodes(stck, std_script.split())
+                std_script = f'OP_DUP OP_HASH160 OP_PUSHBYTES_20 {inp["prevout"]["scriptpubkey_asm"].split()[2]} OP_EQUALVERIFY OP_CHECKSIG'
+                (stck, valid) = loop_opcodes(stck, std_script.split())
 
-                # if not valid:
-                #     return False
-
-                # # remove this
-                # return False
-                pass
+                if not valid:
+                    return False
+                
+                # remove this
+                return False
             
             elif inp["prevout"]["scriptpubkey_type"] == "v1_p2tr":
                 pass
@@ -226,9 +225,6 @@ def verify_tx(tx_filename):
 
                 if _pubkeyscripthash != inp["prevout"]["scriptpubkey"] or _pubkeyscripthash[0:4] != "0020":
                     return False
-
-            else:
-                return False
             
             hex_seq = hex(inp["sequence"])
 
@@ -248,7 +244,7 @@ def verify_tx(tx_filename):
                 return False
             out_amt += outp["value"]
 
-        if inp_amt < out_amt:
+        if inp_amt < out_amt or inp_amt - out_amt < 2000:
             return False
 
         try:
