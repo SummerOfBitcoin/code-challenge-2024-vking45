@@ -91,6 +91,9 @@ def getTxID(filename):
         
         raw += data['locktime'].to_bytes(4, byteorder='little').hex()
 
+        if len(raw) % 2 != 0:
+            return False
+
         txid = reverse_hex_string_bytearray(double_hash(raw))
         
         return txid
@@ -133,6 +136,9 @@ def wTxID(filename):
         
         raw += data['locktime'].to_bytes(4, byteorder='little').hex()
 
+        if len(raw) % 2 != 0:
+            return False
+        
         return reverse_hex_string_bytearray(double_hash(raw))
 
 def mempool(coinbase_txid):
@@ -142,7 +148,9 @@ def mempool(coinbase_txid):
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
-            val_txs.append(getTxID(filename))
+            _temp = getTxID(filename)
+            if _temp != False:
+                val_txs.append(_temp)
         else:
             inval_txs += 1
     print(f"Valid Transactions : {len(val_txs)}")
@@ -196,6 +204,21 @@ def verify_tx(tx_filename):
                 _redeemscript = inp["inner_redeemscript_asm"].split()
                 if not process_scriptpubkey(_redeemscript) == dup_stck.pop():
                     print("False redeemScript - " + tx_filename)    
+                    return False
+
+            elif inp["prevout"]["scriptpubkey_type"] == "v0_p2wpkh":
+                stck = Stack()
+
+                if inp["scriptsig"] != "" or inp["scriptsig_asm"] != "" or len(inp["witness"]) != 2 or inp["prevout"]["scriptpubkey_asm"][0:20] != "OP_0 OP_PUSHBYTES_20" or process_scriptpubkey(inp["prevout"]["scriptpubkey_asm"].split()) != inp["prevout"]["scriptpubkey"]:
+                    return False
+
+                for i in inp["witness"]:
+                    stck.push(i)
+
+                std_script = f"OP_DUP OP_HASH160 OP_PUSHBYTES_20 {inp["prevout"]["scriptpubkey_asm"].split()[2]} OP_EQUALVERIFY OP_CHECKSIG"
+                (stck, valid) = loop_opcodes(stck, std_script.split())
+
+                if not valid:
                     return False
 
             else:
@@ -378,7 +401,9 @@ w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
-        w_txs.append(wTxID(filename))
+        temp = wTxID(filename)
+        if temp != False:
+            w_txs.append(temp)
 rev = []
 for i in w_txs:
     rev.append(reverse_hex_string_bytearray(i))
@@ -393,15 +418,15 @@ coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
 (merkle, tx_list) = mempool(coinbase_txid)
 header = block_header(merkle)
 
-
-# print(reverse_hex_string_bytearray(double_hash(coinbase)))
-# print(wtx_list)
-
 with open('output.txt', 'w') as file:
     file.write(header + '\n')
     file.write(raw_coinbase + '\n')
     for tx in tx_list:
         file.write(str(tx) + '\n')
+
+
+# print(reverse_hex_string_bytearray(double_hash(coinbase)))
+# print(wtx_list)
 
 # reverse_wtxids = []
 # w_txs = ['0000000000000000000000000000000000000000000000000000000000000000', '8700d546b39e1a0faf34c98067356206db50fdef24e2f70b431006c59d548ea2', 'c54bab5960d3a416c40464fa67af1ddeb63a2ce60a0b3c36f11896ef26cbcb87', 'e51de361009ef955f182922647622f9662d1a77ca87c4eb2fd7996b2fe0d7785']
@@ -421,7 +446,7 @@ with open('output.txt', 'w') as file:
 #   "220d82a59a4c4f92eb2d77cc5b5c9ae0166a4e811c87a6677938404b72ddf03e",
 # ]
 
-# print(verify_tx("04f89b4a86c1041a6d72b7a328089a2b915b7f7a207041564b708a75bd1161b1.json"))
+print(getTxID("ffbb95a075ef61e406fc83242416bde721545473f658171f41d805a76034439f.json"))
 
 # # Reverse byte order of TXIDs
 # #txids = [txid[::-1] for txid in txids]
