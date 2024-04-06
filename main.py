@@ -162,9 +162,6 @@ def verify_tx(tx_filename):
         inp_amt = 0
         out_amt = 0
 
-        if len(data["vin"]) > 30:
-            return False
-
         for inp in data["vin"]:
 
             if inp["prevout"]["scriptpubkey_type"] == "p2pkh":
