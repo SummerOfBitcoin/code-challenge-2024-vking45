@@ -244,7 +244,7 @@ def verify_tx(tx_filename):
                 return False
             out_amt += outp["value"]
 
-        if inp_amt < out_amt or inp_amt - out_amt < 2000:
+        if inp_amt < out_amt or inp_amt - out_amt < 1000:
             return False
 
         try:
