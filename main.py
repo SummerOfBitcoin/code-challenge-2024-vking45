@@ -398,10 +398,11 @@ def coinbase_tx(witness_root):
 
 w_txs = []
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
-files_list = os.listdir("mempool")
+files_list = os.listdir("mempool")[0:1000]
 for index, filename in enumerate(files_list):
     if verify_tx(filename):
         temp = wTxID(filename)
+        print(temp)
         if temp == False:
             files_list.pop(index)
         else:
