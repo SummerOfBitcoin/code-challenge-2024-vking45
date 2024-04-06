@@ -216,8 +216,16 @@ def verify_tx(tx_filename):
                 # remove this
                 return False
             
-            elif inp["prevout"]["scriptpubkey_type"] == "v1_p2tr" or inp["prevout"]["scriptpubkey_type"] == "v0_p2wsh":
+            elif inp["prevout"]["scriptpubkey_type"] == "v1_p2tr":
                 pass
+            
+            elif inp["prevout"]["scriptpubkey_type"] == "v0_p2wsh":
+                _pubkeyscript = inp["prevout"]["scriptpubkey_asm"].split()
+                _pubkeyscripthash = process_scriptpubkey(_pubkeyscript)
+
+                if _pubkeyscripthash != inp["prevout"]["scriptpubkey"] or _pubkeyscripthash[0:4] != "0020":
+                    return False
+
             else:
                 return False
             
