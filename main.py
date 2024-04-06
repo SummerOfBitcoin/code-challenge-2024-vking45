@@ -215,7 +215,7 @@ def verify_tx(tx_filename):
                 for i in inp["witness"]:
                     stck.push(i)
 
-                std_script = f"OP_DUP OP_HASH160 OP_PUSHBYTES_20 {inp["prevout"]["scriptpubkey_asm"].split()[2]} OP_EQUALVERIFY OP_CHECKSIG"
+                std_script = f'OP_DUP OP_HASH160 OP_PUSHBYTES_20 {inp["prevout"]["scriptpubkey_asm"].split()[2]} OP_EQUALVERIFY OP_CHECKSIG'
                 (stck, valid) = loop_opcodes(stck, std_script.split())
 
                 if not valid:
