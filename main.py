@@ -161,9 +161,6 @@ def verify_tx(tx_filename):
 
         inp_amt = 0
         out_amt = 0
-        
-        if len(data["vin"]) > 30:
-            return False
 
         for inp in data["vin"]:
 
@@ -200,10 +197,7 @@ def verify_tx(tx_filename):
                 if not process_scriptpubkey(_redeemscript) == dup_stck.pop():
                     print("False redeemScript - " + tx_filename)    
                     return False
-                
-            elif inp["prevout"]["scriptpubkey_type"] == "v0_p2wpkh":
-                if inp["prevout"]["scriptpubkey"][0:4] != "0014" or inp["prevout"]["scriptpubkey_asm"][0:20] != "OP_0 OP_PUSHBYTES_20":
-                    return False
+
             else:
                 return False
             
