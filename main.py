@@ -215,7 +215,9 @@ def verify_tx(tx_filename):
 
                 # remove this
                 return False
-                
+            
+            elif inp["prevout"]["scriptpubkey_type"] == "v1_p2tr":
+                pass
             else:
                 return False
             
