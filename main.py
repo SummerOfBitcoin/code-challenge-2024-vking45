@@ -91,9 +91,6 @@ def getTxID(filename):
         
         raw += data['locktime'].to_bytes(4, byteorder='little').hex()
 
-        if len(raw) % 2 != 0:
-            return False
-
         txid = reverse_hex_string_bytearray(double_hash(raw))
         
         return txid
@@ -135,22 +132,17 @@ def wTxID(filename):
                     raw += wit
         
         raw += data['locktime'].to_bytes(4, byteorder='little').hex()
-
-        if len(raw) % 2 != 0:
-            return False
         
         return reverse_hex_string_bytearray(double_hash(raw))
 
-def mempool(coinbase_txid, files_list):
+def mempool(coinbase_txid):
     inval_txs = 0
     val_txs = []
     val_txs.append(coinbase_txid)
     folder = "mempool"
-    for filename in files_list:
+    for filename in os.listdir(folder):
         if verify_tx(filename):
-            _temp = getTxID(filename)
-            if _temp != False:
-                val_txs.append(_temp)
+            val_txs.append(getTxID(filename))
         else:
             inval_txs += 1
     print(f"Valid Transactions : {len(val_txs)}")
@@ -244,7 +236,13 @@ def verify_tx(tx_filename):
 
         if inp_amt < out_amt:
             return False
-        
+
+        try:
+            wTxID(tx_filename)
+            getTxID(tx_filename)
+        except:
+            return False
+
         return True
 
 def process_scriptpubkey(oplist):
@@ -398,15 +396,10 @@ def coinbase_tx(witness_root):
 
 w_txs = []
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
-files_list = os.listdir("mempool")[0:1000]
-for index, filename in enumerate(files_list):
+folder = "mempool"
+for filename in os.listdir(folder):
     if verify_tx(filename):
-        temp = wTxID(filename)
-        print(temp)
-        if temp == False:
-            files_list.pop(index)
-        else:
-            w_txs.append(temp)
+        w_txs.append(wTxID(filename))
 rev = []
 for i in w_txs:
     rev.append(reverse_hex_string_bytearray(i))
@@ -418,7 +411,7 @@ raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
 # print(coinbase_txid)
-(merkle, tx_list) = mempool(coinbase_txid, files_list)
+(merkle, tx_list) = mempool(coinbase_txid)
 header = block_header(merkle)
 
 with open('output.txt', 'w') as file:
