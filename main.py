@@ -141,12 +141,12 @@ def wTxID(filename):
         
         return reverse_hex_string_bytearray(double_hash(raw))
 
-def mempool(coinbase_txid):
+def mempool(coinbase_txid, files_list):
     inval_txs = 0
     val_txs = []
     val_txs.append(coinbase_txid)
     folder = "mempool"
-    for filename in os.listdir(folder):
+    for filename in files_list:
         if verify_tx(filename):
             _temp = getTxID(filename)
             if _temp != False:
@@ -398,11 +398,13 @@ def coinbase_tx(witness_root):
 
 w_txs = []
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
-folder = "mempool"
-for filename in os.listdir(folder):
+files_list = os.listdir("mempool")
+for index, filename in enumerate(files_list):
     if verify_tx(filename):
         temp = wTxID(filename)
-        if temp != False:
+        if temp == False:
+            files_list.pop(index)
+        else:
             w_txs.append(temp)
 rev = []
 for i in w_txs:
@@ -415,7 +417,7 @@ raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
 # print(coinbase_txid)
-(merkle, tx_list) = mempool(coinbase_txid)
+(merkle, tx_list) = mempool(coinbase_txid, files_list)
 header = block_header(merkle)
 
 with open('output.txt', 'w') as file:
