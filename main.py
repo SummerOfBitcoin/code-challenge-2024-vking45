@@ -142,7 +142,10 @@ def mempool(coinbase_txid):
     folder = "mempool"
     for filename in os.listdir(folder):
         if verify_tx(filename):
-            val_txs.append(getTxID(filename))
+            try:
+                val_txs.append(getTxID(filename))
+            except:
+                pass
         else:
             inval_txs += 1
     print(f"Valid Transactions : {len(val_txs)}")
@@ -198,11 +201,18 @@ def verify_tx(tx_filename):
                     print("False redeemScript - " + tx_filename)    
                     return False
                 
+            elif inp["prevout"]["scriptpubkey_type"] == "v0_p2wpkh":
+                if inp["prevout"]["scriptpubkey"][0:4] != "0014" or inp["prevout"]["scriptpubkey_asm"][0:20] != "OP_0 OP_PUSHBYTES_20":
+                    return False
             else:
                 return False
             
             hex_seq = hex(inp["sequence"])
 
+            if inp["prevout"]["value"] < 1:
+                return False
+
+            # improve this locktime constraint
             if hex_seq > '0xefffffff' and hex_seq != '0xffffffff':
                 return False
 
@@ -367,18 +377,23 @@ def coinbase_tx(witness_root):
     
     return raw
 
+
+
 w_txs = []
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
 folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
-        w_txs.append(wTxID(filename))
+        try:
+            w_txs.append(wTxID(filename))
+        except:
+            print(filename)
 rev = []
 for i in w_txs:
     rev.append(reverse_hex_string_bytearray(i))
 # print(w_txs)
 witness_root = merkleroot(rev)
-print(w_txs)
+# print(w_txs)
 print("witness - " + witness_root)
 raw_coinbase = coinbase_tx(witness_root)
 # print(raw_coinbase)
@@ -414,6 +429,8 @@ with open('output.txt', 'w') as file:
 #   "321c449ef1ee7f6d3602d043faaaa1a1b20b4cff23f22b6e6de366163a558756",
 #   "220d82a59a4c4f92eb2d77cc5b5c9ae0166a4e811c87a6677938404b72ddf03e",
 # ]
+
+print(verify_tx("04f89b4a86c1041a6d72b7a328089a2b915b7f7a207041564b708a75bd1161b1.json"))
 
 # # Reverse byte order of TXIDs
 # #txids = [txid[::-1] for txid in txids]
