@@ -206,6 +206,10 @@ def verify_tx(tx_filename):
                     return False
 
             elif inp["prevout"]["scriptpubkey_type"] == "v0_p2wpkh":
+                
+                if len(data['vin']) > 1:
+                    return False
+
                 stck = Stack()
 
                 if inp["scriptsig"] != "" or inp["scriptsig_asm"] != "" or len(inp["witness"]) != 2 or inp["prevout"]["scriptpubkey_asm"][0:20] != "OP_0 OP_PUSHBYTES_20" or process_scriptpubkey(inp["prevout"]["scriptpubkey_asm"].split()) != inp["prevout"]["scriptpubkey"]:
@@ -236,7 +240,7 @@ def verify_tx(tx_filename):
                 return False
 
             # improve this locktime constraint
-            if hex_seq != '0xffffffff':
+            if hex_seq > '0xefffffff' and hex_seq != '0xffffffff':
                 return False
 
             inp_amt += inp["prevout"]["value"]
