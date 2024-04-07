@@ -162,7 +162,14 @@ def verify_tx(tx_filename):
         inp_amt = 0
         out_amt = 0
 
+        txid_vout = []
+
         for inp in data["vin"]:
+
+            if (inp["txid"], inp["vout"]) in txid_vout:
+                return False
+
+            txid_vout.append((inp["txid"], inp["vout"]))
 
             if inp["prevout"]["scriptpubkey_type"] == "p2pkh":
                 stck = Stack()
@@ -212,9 +219,6 @@ def verify_tx(tx_filename):
 
                 if not valid:
                     return False
-                
-                # remove this
-                return False
             
             elif inp["prevout"]["scriptpubkey_type"] == "v1_p2tr":
                 pass
@@ -229,10 +233,6 @@ def verify_tx(tx_filename):
             hex_seq = hex(inp["sequence"])
 
             if inp["prevout"]["value"] < 1:
-                return False
-
-            # improve this locktime constraint
-            if hex_seq > '0xefffffff' and hex_seq != '0xffffffff':
                 return False
 
             inp_amt += inp["prevout"]["value"]
@@ -452,7 +452,7 @@ with open('output.txt', 'w') as file:
 #   "220d82a59a4c4f92eb2d77cc5b5c9ae0166a4e811c87a6677938404b72ddf03e",
 # ]
 
-print(getTxID("ffbb95a075ef61e406fc83242416bde721545473f658171f41d805a76034439f.json"))
+# print(verify_tx("ff7d9ab4df5c33f6a3e347cacb759eff28a48a9936e0103a439a92019d6c1899.json"))
 
 # # Reverse byte order of TXIDs
 # #txids = [txid[::-1] for txid in txids]
