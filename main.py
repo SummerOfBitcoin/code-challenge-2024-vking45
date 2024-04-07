@@ -207,7 +207,7 @@ def verify_tx(tx_filename):
 
             elif inp["prevout"]["scriptpubkey_type"] == "v0_p2wpkh":
                 
-                if len(data['vin']) > 1:
+                if len(data['vin']) > 2:
                     return False
 
                 stck = Stack()
