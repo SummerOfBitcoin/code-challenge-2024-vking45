@@ -32,28 +32,33 @@ class Stack:
     def view(self):
         print(self.list)
 
+# a helper function to convert a hex string to reverse hex string
 def reverse_hex_string_bytearray(hex_string):
   byte_array = bytearray.fromhex(hex_string)
   byte_array.reverse()
   return byte_array.hex()
 
+# a helper function to get the current timestamp for mining the block
 def get_timestamp():
     current_timestamp = int(time.time())
     hex_bytes = struct.pack("<I", current_timestamp)
     hex_string = hex_bytes.hex()
     return hex_string
 
+# a helper function to calculate ripemd160 hash of the input
 def _ripemd160(hex_bytes):
     binary_data = binascii.unhexlify(hex_bytes)
     hash_object = ripemd.ripemd160.new(binary_data) 
     hex_digest = hash_object.digest()  
     return hex_digest.hex()
 
+# a helper function to double sha256 hash of the input
 def double_hash(data):
     single_hash = hashlib.sha256(bytes.fromhex(data))
     double_hash = hashlib.sha256(bytes.fromhex(single_hash.hexdigest())).hexdigest()
     return double_hash
 
+# a helper function which takes a list of txids/wtxids as input and calculates the root of the merkle tree in a recursive manner
 def merkleroot(txids):
     if len(txids) == 1:
         return txids[0]
@@ -65,6 +70,7 @@ def merkleroot(txids):
         result.append(double_hash(concat))
     return merkleroot(result)
 
+# a helper function which takes the filename of the transaction as input, serializes the whole data in the correct manner and returns the double hash of the serialized data in reverse byte order
 def getTxID(filename):
     with open(f"mempool/{filename}", 'r') as f:
         data = json.load(f)
@@ -95,6 +101,7 @@ def getTxID(filename):
         
         return txid
 
+# a helper function which takes the filename as input, serializes the whole data including the marker, flag and witness as well and returns the double has of the serialized data in reverse byte order
 def wTxID(filename):
     with open(f"mempool/{filename}", 'r') as f:
         data = json.load(f)
@@ -135,6 +142,7 @@ def wTxID(filename):
         
         return reverse_hex_string_bytearray(double_hash(raw))
 
+# the main loop which takes in the coinbase_txid as input and creates a list of valid txids and puts it in the merkleroot helper function to calculate merkleroot hash and returns the list of valid txs to write in the output.txt
 def mempool(coinbase_txid):
     inval_txs = 0
     val_txs = []
@@ -153,9 +161,9 @@ def mempool(coinbase_txid):
     merkle = merkleroot(reverse_txids)
     return (merkle, val_txs)
 
+# the function which checks each json file at once to see if it is valid or not
 def verify_tx(tx_filename):
     with open(f"mempool/{tx_filename}", 'r') as f:
-#        valid = False
 
         data = json.load(f)
 
@@ -263,6 +271,7 @@ def verify_tx(tx_filename):
 
         return True
 
+# a helper function to convert ASM list of operations into pubkey of the script
 def process_scriptpubkey(oplist):
     key = ""
     opcodes = {
@@ -318,6 +327,7 @@ def process_scriptpubkey(oplist):
             i += 1
     return key
 
+# the function which takes the stack and list of op codes as input, loops through each op and returns the stack and boolean whether the ops were valid or not
 def loop_opcodes(stck, oplist):
     valid = True
     n = len(oplist)
@@ -331,9 +341,10 @@ def loop_opcodes(stck, oplist):
             break
     return (stck, valid)
 
+# a helper function which processes an opcode at a time by taking inputs stack, index which is currently being processed of the opcode list
 def process_opcode(stck, i, oplist):
     valid = True
-    if oplist[i][0:12] == "OP_PUSHBYTES":
+    if oplist[i][0:12] == "OP_PUSHBYTES" or oplist[i][0:12] == "OP_PUSHDATA1" or oplist[i][0:12] == "OP_PUSHDATA2":
         stck.push(oplist[i+1])
         i += 2
     elif oplist[i] == "OP_DUP":
@@ -356,12 +367,18 @@ def process_opcode(stck, i, oplist):
     elif oplist[i] == "OP_DROP":
         _val = stck.pop()
         i += 1
+    elif oplist[i] == "OP_CHECKSIG":
+        i += 1
+    elif oplist[i] == "OP_0":
+        stck.push(0)
+        i += 1
     else:
-#        print(oplist[i])
+        print(oplist[i])
         i += 1
 
     return [stck, i, valid]
 
+# the function to construct a version 4 block header in a serialized form, takes merkle root as input
 def block_header(merkle):
     header = ''
     version = 4
@@ -381,6 +398,7 @@ def block_header(merkle):
         if int(reverse_hex_string_bytearray(double_hash(temp)), 16) < int(difficulty, 16):
             return temp
     
+# the function which constrtuct a serialized coinbase transaction, taking input of witness root
 def coinbase_tx(witness_root):
     raw = ''
     # includes version in Little Endian, Input Count = 01 & Input 0 as 0 address and vout as highest value
@@ -410,34 +428,50 @@ def coinbase_tx(witness_root):
     
     return raw
 
+# -------------------------------- the execution part of the main function --------------------------------
 
-
+# creates an empty list of witness hashes
 w_txs = []
+# adds zero witness hash as the first entry which corresponds to the coinbase transaction
 w_txs.append('0000000000000000000000000000000000000000000000000000000000000000')
+
+# loop for adding witness hashes of valid transactions to the list
 folder = "mempool"
 for filename in os.listdir(folder):
     if verify_tx(filename):
         w_txs.append(wTxID(filename))
+
+# reversing the byte order of the witness hashes
 rev = []
 for i in w_txs:
     rev.append(reverse_hex_string_bytearray(i))
-# print(w_txs)
+
+# constructs the witness root from the witness hashes list
 witness_root = merkleroot(rev)
 # print(w_txs)
 print("witness - " + witness_root)
+
+# creating a raw coinbase tx
 raw_coinbase = coinbase_tx(witness_root)
-# print(raw_coinbase)
+
+# reversing the byte order after creating the coinbase txid from the raw coinbase tx
 coinbase_txid = reverse_hex_string_bytearray(double_hash(raw_coinbase))
-# print(coinbase_txid)
+
+# creating the merkle root and txlist by calling the mempool function
 (merkle, tx_list) = mempool(coinbase_txid)
+
+# constructing the block header
 header = block_header(merkle)
 
+# writing all the data to the output.txt file in the given format
 with open('output.txt', 'w') as file:
     file.write(header + '\n')
     file.write(raw_coinbase + '\n')
     for tx in tx_list:
         file.write(str(tx) + '\n')
 
+
+# ------------------------------------------------ Testing Codes Below ------------------------------------------------
 
 # print(reverse_hex_string_bytearray(double_hash(coinbase)))
 # print(wtx_list)
@@ -460,7 +494,7 @@ with open('output.txt', 'w') as file:
 #   "220d82a59a4c4f92eb2d77cc5b5c9ae0166a4e811c87a6677938404b72ddf03e",
 # ]
 
-print(verify_tx("ff7d9ab4df5c33f6a3e347cacb759eff28a48a9936e0103a439a92019d6c1899.json"))
+# print(verify_tx("ff7d9ab4df5c33f6a3e347cacb759eff28a48a9936e0103a439a92019d6c1899.json"))
 
 # # Reverse byte order of TXIDs
 # #txids = [txid[::-1] for txid in txids]
