@@ -1,5 +1,3 @@
-# SOLUTION.md
-
 ## Design Approach:
 The block construction program takes a list of mempool transactions as input and constructs a Bitcoin block. Here's a breakdown of the key concepts involved in creating a valid block:
 
